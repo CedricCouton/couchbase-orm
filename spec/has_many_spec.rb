@@ -5,7 +5,6 @@ require File.expand_path("../support", __FILE__)
 shared_examples "has_many example" do |parameter|
     before :all do
         @context = parameter[:context].to_s
-
         @rating_test_class = Kernel.const_get("Rating#{@context.camelize}Test".classify)
         @object_test_class = Kernel.const_get("Object#{@context.camelize}Test".classify)
         @object_rating_test_class = Kernel.const_get("ObjectRating#{@context.camelize}Test".classify)
@@ -13,12 +12,16 @@ shared_examples "has_many example" do |parameter|
         @rating_test_class.ensure_design_document!
         @object_test_class.ensure_design_document!
         @object_rating_test_class.ensure_design_document!
+
+        @rating_test_class.all.each(&:destroy)
+        @object_test_class.all.each(&:destroy)
+        @object_rating_test_class.all.each(&:destroy)
     end
 
     after :each do
-        @rating_test_class.all.stream(&:delete)
-        @object_test_class.all.stream(&:delete)
-        @object_rating_test_class.all.stream(&:delete)
+        @rating_test_class.all.each(&:destroy)
+        @object_test_class.all.each(&:destroy)
+        @object_rating_test_class.all.each(&:destroy)
     end
 
     it "should return matching results" do
@@ -35,10 +38,10 @@ shared_examples "has_many example" do |parameter|
 
         docs = first.try(:"rating_#{@context}_tests").collect(&:rating)
 
-        expect(docs).to eq([1, 2])
+        expect(docs).to match_array([1, 2])
 
         first.destroy
-        expect { @rating_test_class.find rate.id }.to raise_error(::MTLibcouchbase::Error::KeyNotFound)
+        expect { @rating_test_class.find rate.id }.to raise_error(Couchbase::Error::DocumentNotFound)
         expect(@rating_test_class.all.count).to be(1)
     end
 
